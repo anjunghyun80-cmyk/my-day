@@ -1,0 +1,13 @@
+{
+  "name": "mein-tag",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Persoenliche Tagesplan- und Abhak-PWA fuer das iPhone",
+  "scripts": {
+    "test": "node --test \"test/*.test.js\"",
+    "start": "node werkzeuge/server.mjs",
+    "icons": "node werkzeuge/icon-erzeugen.mjs",
+    "paket": "node werkzeuge/paket-bauen.mjs"
+  }
+}

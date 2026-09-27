@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="de" data-thema="dunkel">
+<head>
+<meta charset="utf-8">
+<!-- viewport-fit=cover: die Seite darf unter Notch und Home-Balken reichen.
+     Das Doppeltipp-Zoomen verhindert CSS (touch-action: manipulation). -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mein Tag</title>
+
+<!-- Farbe der Statusleiste. js/ui/thema.js passt sie beim Umschalten an. -->
+<meta name="theme-color" content="#0E1116">
+
+<!-- iPhone: Vollbild vom Home-Bildschirm aus -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mein Tag">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+
+<link rel="manifest" href="manifest.webmanifest">
+
+<!-- Grundfarben direkt hier, damit der Bildschirm nie weiss ist - auch dann
+     nicht, wenn das Stylesheet aus irgendeinem Grund nicht ankommt.
+     Wichtig: Dieser Block steht VOR dem Stylesheet und benutzt :where()
+     (zaehlt nichts). So gewinnt css/stil.css immer. Frueher stand er danach -
+     dann blieb im hellen Modus die Schrift hell auf hellem Grund. -->
+<style>
+  :where(html, body) { margin: 0; background: #0E1116; color: #F1F4F8; }
+  :where(html[data-thema='hell']), :where(html[data-thema='hell'] body) { background: #F3F5F8; color: #10141A; }
+</style>
+<link rel="stylesheet" href="css/stil.css">
+
+<script>
+  // Laeuft, bevor die Seite zum ersten Mal gezeichnet wird, damit beim Start
+  // nichts in der falschen Farbe aufblitzt. Bewusst kein Modul - das wuerde
+  // zu spaet ausgefuehrt.
+  try {
+    var gewaehlt = localStorage.getItem('mein-tag/thema');
+    if (gewaehlt === 'hell' || gewaehlt === 'system') {
+      document.documentElement.dataset.thema = gewaehlt;
+    }
+    // Die gewaehlte Akzentfarbe gleich setzen. js/ui/thema.js rechnet danach
+    // alle abgeleiteten Farbtoene aus und nimmt diesen Wert wieder weg.
+    var akzent = localStorage.getItem('mein-tag/akzent');
+    if (akzent && /^#[0-9A-Fa-f]{6}$/.test(akzent)) {
+      document.documentElement.style.setProperty('--akzent', akzent);
+    }
+  } catch (e) { /* privater Modus: dann bleibt es dunkel und orange */ }
+
+  // Faengt Fehler ab, die sonst nur einen leeren Bildschirm hinterlassen,
+  // und schreibt sie sichtbar auf die Seite. Ohne das steht man vor Weiss
+  // und weiss nicht, woran es liegt.
+  (function () {
+    var gezeigt = false;
+
+    function zeige(titel, text) {
+      if (gezeigt) return;
+      gezeigt = true;
+      var kasten = document.createElement('pre');
+      kasten.id = 'startfehler';
+      kasten.style.cssText =
+        'margin:16px;padding:16px;border:1px solid #FF6B6B;border-radius:3px;' +
+        'background:#161A20;color:#F1F4F8;font:13px/1.5 -apple-system,monospace;' +
+        'white-space:pre-wrap;word-break:break-word;position:relative;z-index:9999;';
+      kasten.textContent = titel + '\n\n' + text;
+      (document.body || document.documentElement).appendChild(kasten);
+    }
+
+    window.addEventListener('error', function (e) {
+      zeige(
+        'Die App konnte nicht starten.',
+        (e.message || 'Unbekannter Fehler') +
+          '\n\nDatei: ' + (e.filename || '?') +
+          '\nZeile: ' + (e.lineno || '?') +
+          '\n\nSafari: ' + navigator.userAgent,
+      );
+    });
+
+    window.addEventListener('unhandledrejection', function (e) {
+      zeige('Die App konnte nicht starten.', String(e.reason));
+    });
+
+    // Falls gar nichts passiert: nach 5 Sekunden nachsehen, ob die
+    // Oberflaeche steht - und wenn nicht, jedes Modul einzeln anfassen,
+    // um zu sehen, welches klemmt.
+    window.addEventListener('load', function () {
+      setTimeout(async function () {
+        if (document.querySelector('.tab')) return;
+
+        var module = [
+          'js/logik/zeit.js', 'js/logik/plan.js', 'js/logik/snapshot.js',
+          'js/logik/streak.js', 'js/logik/statistik.js', 'js/logik/ics.js',
+          'js/logik/backup.js', 'js/logik/zustand.js', 'js/logik/aufgaben.js',
+          'js/logik/workout.js', 'js/logik/tagesabschluss.js',
+          'js/logik/farbe.js', 'js/logik/glowup.js', 'js/daten/glowup.js',
+          'js/ui/dom.js', 'js/ui/icons.js', 'js/ui/thema.js', 'js/ui/feier.js',
+          'js/ui/heute.js', 'js/ui/woche.js', 'js/ui/sport.js',
+          'js/ui/statistik.js', 'js/ui/planEditor.js', 'js/ui/glowup.js',
+          'js/ui/einstellungen.js',
+          'js/speicher.js', 'js/dateien.js', 'js/konfiguration.js', 'js/app.js',
+        ];
+
+        var fehler = [];
+        for (var i = 0; i < module.length; i += 1) {
+          try {
+            await import('./' + module[i]);
+          } catch (f) {
+            fehler.push(module[i] + '\n   -> ' + (f && f.message ? f.message : String(f)));
+          }
+        }
+
+        zeige(
+          'Die App startet nicht.',
+          (fehler.length
+            ? 'Diese Bausteine machen Probleme:\n\n' + fehler.join('\n\n')
+            : 'Alle Bausteine laden einzeln fehlerfrei - es liegt am Zusammenspiel.') +
+            '\n\n---\nSafari: ' + navigator.userAgent +
+            '\nService Worker: ' + ('serviceWorker' in navigator ? 'ja' : 'nein'),
+        );
+
+        // Ein Knopf, der alles Zwischengespeicherte wegwirft. Das loest die
+        // meisten Probleme nach einem Update.
+        var knopf = document.createElement('button');
+        knopf.textContent = 'App zuruecksetzen und neu laden';
+        knopf.style.cssText =
+          'display:block;margin:0 16px 16px;padding:14px 18px;width:calc(100% - 32px);' +
+          'border:0;border-radius:3px;background:#EB6834;color:#0E1116;' +
+          'font:600 16px -apple-system,sans-serif;position:relative;z-index:9999;';
+        knopf.onclick = async function () {
+          try {
+            var regs = await navigator.serviceWorker.getRegistrations();
+            for (var r of regs) await r.unregister();
+            var namen = await caches.keys();
+            for (var n of namen) await caches.delete(n);
+          } catch (e) { /* egal - Hauptsache neu laden */ }
+          location.reload(true);
+        };
+        document.body.appendChild(knopf);
+      }, 5000);
+    });
+  })();
+</script>
+</head>
+<body>
+
+<!-- Banner "Jetzt: ..." - erscheint, waehrend die App offen ist -->
+<div id="banner" class="banner" role="status" aria-live="polite" hidden></div>
+
+<!-- Kurze Rueckmeldungen ("Gespeichert", "2 Ziele uebernommen") -->
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+<main id="inhalt" class="inhalt"></main>
+
+<nav id="tabs" class="tabs" aria-label="Hauptbereiche"></nav>
+
+<!-- Overlay fuer Einstellungen und Block-Bearbeitung -->
+<div id="blende" class="blende" hidden></div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

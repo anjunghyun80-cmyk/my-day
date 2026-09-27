@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" role="img" aria-label="Mein Tag">
+  <defs>
+    <linearGradient id="grund" x1="0" y1="0" x2="0.5" y2="1">
+      <stop offset="0" stop-color="#1A2230"/>
+      <stop offset="1" stop-color="#0A0D13"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="192" height="192" rx="42" fill="url(#grund)"/>
+
+  <!-- Fortschrittsring: beginnt oben, laeuft 298 Grad im Uhrzeigersinn -->
+  <path d="M96 31.7 A64.3 64.3 0 1 1 39.2 65.8"
+        fill="none" stroke="#EB6834" stroke-width="13.8" stroke-linecap="round"/>
+
+  <!-- Haken -->
+  <path d="M67.6 96.4 L86.8 115.6 L126.7 75.3"
+        fill="none" stroke="#FFFFFF" stroke-width="10.8"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
